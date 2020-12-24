@@ -1,7 +1,7 @@
 import cv2
 
 # load image as grayscale
-img = cv2.imread('tree.jpeg', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('gil.jpg', cv2.IMREAD_GRAYSCALE)
 # convert to binary. Inverted, so you get white symbols on black background
 _, thres = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
 # find contours in the thresholded image (this gives all symbols)
@@ -41,7 +41,15 @@ for i in range(1, len(contour_sizes)):
 background_color = 255
 
 img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-cv2.drawContours(img, contours, contour_sizes[0][0], (0,255,0), -1)
+
+matches = [cnt for cnt in contours if cv2.matchShapes(contours[0],cnt,1,0.0) < 0.1 and abs(cv2.contourArea(cnt) - cv2.contourArea(contours[0])) < 10]
+matches_res = [cv2.matchShapes(contours[0],cnt,1,0.0) for cnt in contours]
+
+for i in range(len(matches)):
+    # ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
+    cv2.drawContours(img, matches, i, (0,255,0), -1)
+
+cv2.drawContours(img, contours, 0, (0,0,255), -1)
 
 # loop through the list again, ending (or starting) at the indexOfMaxDifference, to draw the contour
 for i in range(0, indexOfMaxDifference // 2):
