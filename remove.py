@@ -1,7 +1,7 @@
 import cv2
 
 HEIGHT_TO_WIDTH_RATIO_THRESHOLD = 1.8  # TODO: I've extracted this const. Check if it makes sense to you, and if
-                                       #  there are more constants we can extract. Apparently Jihad loves control ;)
+#  there are more constants we can extract. Apparently Jihad loves control ;)
 
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
@@ -136,10 +136,22 @@ def is_kamatz(contour):
     # From all the small contours left, kamatz will have:
     #   1) a more complex polygon than other symbols (with at least 8-9 corners)
     #   2) the shape of the rectangle around it will be more square than others
+    # To prevent misidentifying the letter Yod with Kamatz, we check if the most-right point of the contour is far
+    # enough from the most-right point in the bottom part of the contour.
     perimeter = cv2.arcLength(contour, True)
     approx = cv2.approxPolyDP(contour, 0.005 * perimeter, True)
     _, _, w, h = cv2.boundingRect(contour)
-    if 9 <= len(approx) and abs(w - h) <= 2:  # TODO: Extract '2','9' to consts?
-        return True
-    else:
-        return False
+
+    most_right_x, _ = tuple(contour[contour[:, :, 0].argmax()][0])
+    _, most_bottom_y = tuple(contour[contour[:, :, 1].argmax()][-1])
+    bottom_y = int(most_bottom_y - 0.25 * h)  # TODO: To const?
+    bottom_row_xs = [contour[i][0][0] for i in range(len(contour)) if
+                     is_point_inside_contour((contour[i][0][0], bottom_y), contour)]
+    most_right_x_in_bottom_row = max(bottom_row_xs)
+    bottom_and_right_are_close = most_right_x - most_right_x_in_bottom_row < 0.25 * w  # TODO: To const?
+
+    return 9 <= len(approx) and abs(w - h) <= 2 and not bottom_and_right_are_close  # TODO: Extract '2','9' to consts?
+
+
+def is_point_inside_contour(point, contour):
+    return cv2.pointPolygonTest(contour, point, False) >= 0

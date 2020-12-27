@@ -26,8 +26,7 @@ def main():
 
 
 if __name__ == "__main__":
-    paths = ["article.jpg", "gil.jpg", "goodluck.png", "iloveimageprocessing.jpg",
-             "large.jpg", "smaller.jpg", "tree.jpeg"]
+    paths = ["tree.jpeg"]
     #paths = ["gil.jpg"]
     for path in paths:
         argv.append(path)
