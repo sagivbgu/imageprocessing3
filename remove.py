@@ -53,18 +53,6 @@ def get_contours(img):
     return contours
 
 
-def sort_contours_by_area_size(contours):
-    # create a list of the indexes of the contours and their sizes
-    contours_sizes = []
-    for index, cnt in enumerate(contours):
-        contours_sizes.append([index, cv2.contourArea(cnt), cnt])
-
-    # sort them by the area size
-    contours_sizes.sort(key=lambda x: x[1])
-
-    return contours_sizes
-
-
 def sort_contours_by_height(contours):
     contours_sizes = []
     for index, cnt in enumerate(contours):
@@ -95,9 +83,17 @@ def get_index_of_max_difference(contours_sizes):
     return index_of_max_difference
 
 
-def remove_small_contours(img, contours, contour_sizes, index_of_max_difference):
-    for i in range(0, index_of_max_difference):
-        erase_contour(img, contours, contour_sizes[i][0])
+def filter_small_contours_by_width(indexes, contours):
+    new_indexes = []
+    for index in indexes:
+        _, _, w, h = cv2.boundingRect(contours[index])
+        # if its much higher than its width, ignore it
+        if h >= 1.8 * w:
+            pass
+        else:
+            new_indexes.append(index)
+
+    return new_indexes
 
 
 def erase_contours(img, indexes, contours):
@@ -105,30 +101,11 @@ def erase_contours(img, indexes, contours):
         erase_contour(img, contours, index)
 
 
-def remove_patachs(img, indexes, contours):
-    for index in indexes:
-        if is_patach(contours[index]):
-            print("Hi!")
-            erase_contour(img, contours, index)
-        else:
-            pass
-
-    return img
-
-
 def erase_contour(img, contours, index):
+    # erase the edges and a little bit outside the contour to avoid noise
     cv2.drawContours(img, contours, index, BACKGROUND_COLOR, 2)
+    # erase the inner side of the contour
     cv2.drawContours(img, contours, index, BACKGROUND_COLOR, -2)
-
-
-def is_patach(contour):
-    # assuming that there are no letters and other demarcations
-    # which their width is twice as big as their height
-    x, y, w, h = cv2.boundingRect(contour)
-    if w >= 2 * h:
-        return True
-    else:
-        return False
 
 
 def get_kamatzs(img, indexes, contours):
@@ -157,59 +134,3 @@ def is_kamatz(contour):
         return True
     else:
         return False
-
-
-def filter_small_contours_by_width(indexes, contours):
-    new_indexes = []
-    for index in indexes:
-        _, _, w, h = cv2.boundingRect(contours[index])
-        # if its much higher than its width, ignore it
-        if h >= 1.8 * w:
-            pass
-        else:
-            new_indexes.append(index)
-
-    return new_indexes
-
-
-
-
-
-
-
-
-
-
-
-
-# Extra Code
-# loop through the contours, if the size of the contour is below a threshold,
-    # draw a white shape over it in the input image
-    # for cnt in contours:
-    #     if cv2.contourArea(cnt) < 250:
-    #         cv2.drawContours(img,[cnt],0,(120),-1)
-    # display result
-
-    # maxArea = 0
-    # for cnt in contours:
-    #     currArea = cv2.contourArea(cnt)
-    #     if currArea > maxArea:
-    #         maxArea = currArea
-    #
-    # print(maxArea)
-
-
-
-    # sort the list based on the contour size.
-    # this changes the order of the elements in the list
-
-# img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
-# matches = [cnt for cnt in contours if cv2.matchShapes(contours[0],cnt,1,0.0) < 0.1 and abs(cv2.contourArea(cnt) - cv2.contourArea(contours[0])) < 10]
-# matches_res = [cv2.matchShapes(contours[0],cnt,1,0.0) for cnt in contours]
-
-# for i in range(len(matches)):
-#    # ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
-#    cv2.drawContours(img, matches, i, GREEN, -1)
-
-# cv2.drawContours(img, contours, 0, RED, -1)
