@@ -117,7 +117,8 @@ def remove_patachs(img, indexes, contours):
 
 
 def erase_contour(img, contours, index):
-    cv2.drawContours(img, contours, index, BACKGROUND_COLOR, -1)
+    cv2.drawContours(img, contours, index, BACKGROUND_COLOR, 2)
+    cv2.drawContours(img, contours, index, BACKGROUND_COLOR, -2)
 
 
 def is_patach(contour):

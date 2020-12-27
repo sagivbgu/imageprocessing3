@@ -26,9 +26,9 @@ def main():
 
 
 if __name__ == "__main__":
-    #paths = ["article.jpg", "gil.jpg", "goodluck.png", "iloveimageprocessing.jpg",
-    #         "large.jpg", "smaller.jpg", "tree.jpeg"]
-    paths = ["gil.jpg"]
+    paths = ["article.jpg", "gil.jpg", "goodluck.png", "iloveimageprocessing.jpg",
+             "large.jpg", "smaller.jpg", "tree.jpeg"]
+    #paths = ["gil.jpg"]
     for path in paths:
         argv.append(path)
         argv.append("res_otsu_" + path)
