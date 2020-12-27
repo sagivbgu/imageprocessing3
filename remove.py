@@ -1,5 +1,8 @@
 import cv2
 
+GREEN = (0, 255, 0)
+RED = (0, 0, 255)
+
 
 def remove_demarcation(img):
     thres = apply_otsu(img)
@@ -49,9 +52,9 @@ def remove_demarcation(img):
 
     for i in range(len(matches)):
         # ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
-        cv2.drawContours(img, matches, i, (0,255,0), -1)
+        cv2.drawContours(img, matches, i, GREEN, -1)
 
-    cv2.drawContours(img, contours, 0, (0,0,255), -1)
+    cv2.drawContours(img, contours, 0, RED, -1)
 
     # loop through the list again, ending (or starting) at the indexOfMaxDifference, to draw the contour
     for i in range(0, indexOfMaxDifference // 2):
@@ -63,5 +66,8 @@ def remove_demarcation(img):
 def apply_otsu(img):
     # THIS IS NOT OTSU
     # convert to binary. Inverted, so you get white symbols on black background
-    _, thres = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
+    #_, thres = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
+
+    # Otsu's thresholding
+    _, thres = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     return thres

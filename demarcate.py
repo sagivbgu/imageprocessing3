@@ -13,6 +13,10 @@ def save_image(img, path):
 
 
 if __name__ == "__main__":
+    path = "goodluck.png"
+    argv.append(path)
+    argv.append("res_otsu_" + path)
+
     if len(argv) != 3:
         print("Usage {0}: in_image out_image".format(argv[0]))
         exit()
