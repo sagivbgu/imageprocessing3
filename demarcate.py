@@ -8,7 +8,7 @@ def load_image(path):
 
 def save_image(img, path):
     cv2.imwrite(path, img)
-    cv2.imshow("result", img)
+    cv2.imshow(path, img)
     cv2.waitKey(0)
 
 
@@ -26,12 +26,4 @@ def main():
 
 
 if __name__ == "__main__":
-    paths = ["tree.jpeg"]
-    #paths = ["gil.jpg"]
-    for path in paths:
-        argv.append(path)
-        argv.append("res_otsu_" + path)
-        main()
-        argv.pop()
-        argv.pop()
-
+    main()

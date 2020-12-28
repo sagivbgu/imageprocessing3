@@ -1,11 +1,26 @@
 import cv2
 
-HEIGHT_TO_WIDTH_RATIO_THRESHOLD = 1.8  # TODO: I've extracted this const. Check if it makes sense to you, and if
-#  there are more constants we can extract. Apparently Jihad loves control ;)
+# This const is used to distinguish letters from demarcation - we assume letters are
+# much higher than their width, i.e if h>=this_const * w => it's a letter
+HEIGHT_TO_WIDTH_RATIO_THRESHOLD = 1.8
 
-GREEN = (0, 255, 0)
-RED = (0, 0, 255)
+# This const is used to identify Kamatz.
+# It is elaborated in the function: is_kamatz
+KAMATZ_LEG_INDENT_RATIO = 0.25
 
+# This const is used to identify Kamatz.
+# Most Kamatzs have a shape of a square, this const sets the threshold of the difference
+# between the height and the width of the expected kamatzs
+KAMATZ_HEIGHT_TO_WIDTH_DIFFERENCE = 2
+
+# This const is used to identify Kamatz.
+# This const sets the expected number of corners a surrounding polygon of Kamatz
+# will have. When using a polygon which its perimeter is close to the Kamatz's up to 0.5%
+# of the Kamatz's perimeter, the typical number of corners is at least 8 (according to
+# our observations)
+KAMATZ_NUMBER_OF_POLYGON_CORNERS = 8
+
+# Assuming background is white
 BACKGROUND_COLOR = 255
 
 
@@ -18,7 +33,7 @@ def remove_demarcation(img):
     # So, we want to get all the small components in the erased image and filter them out
     contours, small_contours = get_contours_and_indexes_of_small_contours(img)
 
-    kamatzs = get_kamatzs(img, small_contours, contours)
+    kamatzs = get_kamatzs(small_contours, contours)
 
     erase_contours(img, kamatzs, contours)
 
@@ -35,7 +50,7 @@ def get_contours_and_indexes_of_small_contours(img):
     index_of_max_difference = get_index_of_max_difference(contours_by_height)
 
     # get "small" contours: all contours which are below the index of max difference
-    small_contours = [index for index, size, cnt in contours_by_height[:index_of_max_difference]]
+    small_contours = [index for index, size in contours_by_height[:index_of_max_difference]]
 
     # we filter-out all the contours that are much higher than their width
     small_contours = filter_small_contours_by_width(small_contours, contours)
@@ -51,7 +66,6 @@ def apply_otsu(img):
 def get_contours(img):
     # find only the extreme outer contours (connected components: letters and demarcation)
     # using chain approximation method
-    # TODO: Maybe using cv2.RETR_LIST we can identify Dagesh-s inside letters?
     contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     return contours
@@ -61,7 +75,7 @@ def sort_contours_by_height(contours):
     contours_sizes = []
     for index, cnt in enumerate(contours):
         _, _, _, height = cv2.boundingRect(cnt)
-        contours_sizes.append([index, height, cnt])  # TODO: Is it needed to save the cnt itself? Only its index and height are used
+        contours_sizes.append([index, height])
 
     # sort them by the height
     contours_sizes.sort(key=lambda x: x[1])
@@ -70,8 +84,7 @@ def sort_contours_by_height(contours):
 
 
 def get_index_of_max_difference(contours_sizes):
-    # TODO: Change comment (and code?) since we deal with heights rather than areas
-    # In this method we iterate over the contours (sorted by area size)
+    # In this method we iterate over the contours (sorted by some size)
     # and for each two adjacent sizes in the list we calculate the difference.
     # Then, we determine the index in which the difference is the most significant.
     # Now we can assume: all the contours before this index are more likely to be the demarcation,
@@ -108,49 +121,63 @@ def erase_contours(img, indexes, contours):
 
 def erase_contour(img, contours, index):
     # erase the edges and a little bit outside the contour to avoid noise
-    cv2.drawContours(img, contours, index, BACKGROUND_COLOR, 2)  # TODO: Extract '2' to a const?
+    cv2.drawContours(img, contours, index, BACKGROUND_COLOR, 2)
     # erase the inner side of the contour
     cv2.drawContours(img, contours, index, BACKGROUND_COLOR, -2)
 
 
-def get_kamatzs(img, indexes, contours):
-    # TODO: Can we delete 'img' parameter?
-    # TODO: Remove comments. Then, Is the following line enough?
-    # return [index for index in indexes if is_kamatz(contours[index])]
-
-    kamatzs = []
-    # img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    for index in indexes:
-        if is_kamatz(contours[index]):
-            kamatzs.append(index)
-            # cv2.drawContours(img, contours, index, GREEN, -1)
-            # cv2.imshow("asd", img)
-            # cv2.waitKey(0)
-        else:
-            pass
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    return kamatzs
+def get_kamatzs(indexes, contours):
+    return [index for index in indexes if is_kamatz(contours[index])]
 
 
 def is_kamatz(contour):
     # From all the small contours left, kamatz will have:
-    #   1) a more complex polygon than other symbols (with at least 8-9 corners)
+    #   1) a more complex polygon than other symbols (with at least 8 corners)
     #   2) the shape of the rectangle around it will be more square than others
-    # To prevent misidentifying the letter Yod with Kamatz, we check if the most-right point of the contour is far
-    # enough from the most-right point in the bottom part of the contour.
+    # To prevent misidentifying the letter Yod with Kamatz, we check if the most-right
+    # point of the contour (A in example) is far enough from the most-right point in the bottom part
+    # of the contour (B in example), i,e we check how much the leg of the symbol is "indented".
+    # Example:
+    #
+    #   This is a typical shape of Yod:
+    #
+    #   * * * * A
+    #   * * * * *
+    #         * *
+    #         * B
+    #         * *
+    #
+    #   This is a typical shape of Kamatz:
+    #
+    #   * * * * * A
+    #   * * * * * *
+    #       * B
+    #       * *
+    #
+    #   Usually, the x coordinate of A and B will be closer in Yod (the leg will be less indented)
+    #   and further in Kamatz (more indented).
+    #   The distance between them is relative to the width, and is set by the const KAMATZ_LEG_INDENT_RATIO
+    #   which is set to 0.25 by default
+
     perimeter = cv2.arcLength(contour, True)
     approx = cv2.approxPolyDP(contour, 0.005 * perimeter, True)
     _, _, w, h = cv2.boundingRect(contour)
 
     most_right_x, _ = tuple(contour[contour[:, :, 0].argmax()][0])
     _, most_bottom_y = tuple(contour[contour[:, :, 1].argmax()][-1])
-    bottom_y = int(most_bottom_y - 0.25 * h)  # TODO: To const?
+    # consider the bottom row a little bit higher than the actual bottom row
+    # as we can see in the example - B is not in the most bottom row
+    # this is used to generalize more fonts
+    bottom_y = int(most_bottom_y - 0.25 * h)
     bottom_row_xs = [contour[i][0][0] for i in range(len(contour)) if
                      is_point_inside_contour((contour[i][0][0], bottom_y), contour)]
     most_right_x_in_bottom_row = max(bottom_row_xs)
-    bottom_and_right_are_close = most_right_x - most_right_x_in_bottom_row < 0.25 * w  # TODO: To const?
 
-    return 9 <= len(approx) and abs(w - h) <= 2 and not bottom_and_right_are_close  # TODO: Extract '2','9' to consts?
+    bottom_and_right_are_close = most_right_x - most_right_x_in_bottom_row < KAMATZ_LEG_INDENT_RATIO * w
+
+    return len(approx) >= KAMATZ_NUMBER_OF_POLYGON_CORNERS \
+           and abs(w - h) <= KAMATZ_HEIGHT_TO_WIDTH_DIFFERENCE \
+           and not bottom_and_right_are_close
 
 
 def is_point_inside_contour(point, contour):
