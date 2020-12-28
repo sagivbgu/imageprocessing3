@@ -1,5 +1,7 @@
 from sys import argv
-from remove import *
+import cv2
+
+from remove import remove_demarcation
 
 
 def load_image(path):
@@ -8,8 +10,6 @@ def load_image(path):
 
 def save_image(img, path):
     cv2.imwrite(path, img)
-    cv2.imshow(path, img)
-    cv2.waitKey(0)
 
 
 def main():

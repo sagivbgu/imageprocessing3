@@ -20,6 +20,11 @@ KAMATZ_HEIGHT_TO_WIDTH_DIFFERENCE = 2
 # our observations)
 KAMATZ_NUMBER_OF_POLYGON_CORNERS = 8
 
+# Whether to blur the image before identifying demarcation. Use in cases where font is not "smooth" enough to prevent
+# getting "holes" inside letters in the output.
+# Default is False since in most cases it provides much better results.
+BLUR_IMAGE = False
+
 # Assuming background is white
 BACKGROUND_COLOR = 255
 
@@ -59,14 +64,16 @@ def get_contours_and_indexes_of_small_contours(img):
 
 
 def apply_otsu(img):
+    if BLUR_IMAGE:
+        img = cv2.GaussianBlur(img, (3, 3), 0)
     _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     return img
 
 
 def get_contours(img):
-    # find only the extreme outer contours (connected components: letters and demarcation)
+    # find both inner and outer contours (connected components: letters and demarcation)
     # using chain approximation method
-    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     return contours
 
